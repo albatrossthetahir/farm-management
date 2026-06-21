@@ -1,0 +1,293 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  name      String
+  role      String   // ADMIN, MANAGER, ACCOUNTANT, STAFF
+  createdAt DateTime @default(now())
+}
+
+model Loan {
+  id           String            @id @default(uuid())
+  provider     String
+  totalAmount  Float
+  interestRate Float             // Interest Rate in %
+  receivedDate DateTime
+  notes        String?
+  repayments   LoanRepayment[]
+  utilizations LoanUtilization[]
+}
+
+model LoanRepayment {
+  id                 String   @id @default(uuid())
+  loanId             String
+  loan               Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  amount             Float
+  interestComponent  Float    @default(0)
+  principalComponent Float    @default(0)
+  date               DateTime
+  notes              String?
+}
+
+model LoanUtilization {
+  id        String   @id @default(uuid())
+  loanId    String
+  loan      Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  amount    Float
+  purpose   String
+  date      DateTime
+  expenseId String?
+}
+
+model GoatPurchase {
+  id            String   @id @default(uuid())
+  purchaseDate  DateTime
+  supplier      String
+  quantity      Int
+  totalCost     Float
+  costPerGoat   Float    // totalCost / quantity
+  fundingSource String   // LOAN, PERSONAL, MIXED
+  loanId        String?
+  notes         String?
+  goats         Goat[]
+}
+
+model Goat {
+  id           String         @id @default(uuid())
+  tagNumber    String         @unique
+  breed        String
+  gender       String         // BUCK, DOE
+  age          Int            // age in months
+  weight       Float          // weight in kg
+  purchaseCost Float
+  status       String         // ACTIVE, SOLD, DEAD, BREEDING
+  purchaseId   String?
+  purchase     GoatPurchase?  @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  createdAt    DateTime       @default(now())
+  deaths       GoatDeath[]
+  sales        GoatSaleItem[]
+  kids         Kid[]          @relation("MotherGoat")
+}
+
+model GoatDeath {
+  id         String   @id @default(uuid())
+  goatId     String
+  goat       Goat     @relation(fields: [goatId], references: [id], onDelete: Cascade)
+  date       DateTime
+  lossAmount Float
+  reason     String?
+}
+
+model GoatSale {
+  id            String         @id @default(uuid())
+  date          DateTime
+  customerName  String
+  customerId    String?
+  customer      Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  paymentMethod String
+  paymentStatus String         // PAID, PENDING
+  totalAmount   Float
+  notes         String?
+  items         GoatSaleItem[]
+}
+
+model GoatSaleItem {
+  id        String   @id @default(uuid())
+  saleId    String
+  sale      GoatSale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  goatId    String
+  goat       Goat     @relation(fields: [goatId], references: [id], onDelete: Cascade)
+  salePrice Float
+  profit    Float    // salePrice - purchaseCost
+}
+
+model Kid {
+  id           String    @id @default(uuid())
+  birthDate    DateTime
+  motherGoatId String?
+  mother       Goat?     @relation("MotherGoat", fields: [motherGoatId], references: [id], onDelete: SetNull)
+  breed        String
+  gender       String
+  weight       Float
+  status       String    // GROWING, SOLD, DEAD
+  purchaseCost Float     @default(0)
+  sale         KidSale?
+}
+
+model KidSale {
+  id            String    @id @default(uuid())
+  date          DateTime
+  customerName  String
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  kidId         String    @unique
+  kid           Kid       @relation(fields: [kidId], references: [id], onDelete: Cascade)
+  saleAmount    Float
+  paymentMethod String
+  paymentStatus String    // PAID, PENDING
+  notes         String?
+}
+
+model ChickenPurchase {
+  id             String   @id @default(uuid())
+  purchaseDate   DateTime
+  supplier       String
+  quantity       Int
+  totalCost      Float
+  costPerChicken Float    // totalCost / quantity
+  fundingSource  String   // LOAN, PERSONAL, MIXED
+  loanId         String?
+  notes          String?
+}
+
+model ChickenInventory {
+  id          String   @id @default(uuid())
+  active      Int      @default(0)
+  sold        Int      @default(0)
+  dead        Int      @default(0)
+  lastUpdated DateTime @updatedAt
+}
+
+model ChickenDeath {
+  id             String   @id @default(uuid())
+  date           DateTime
+  quantity       Int
+  costPerChicken Float
+  lossAmount     Float    // quantity * costPerChicken
+  reason         String?
+}
+
+model ChickenSale {
+  id             String    @id @default(uuid())
+  date           DateTime
+  customerName   String
+  customerId     String?
+  customer       Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  quantity       Int
+  unitPrice      Float
+  totalAmount    Float
+  costPerChicken Float
+  totalCost      Float
+  profit         Float     // totalAmount - totalCost
+  paymentMethod  String
+  paymentStatus  String    // PAID, PENDING
+  notes          String?
+}
+
+model EggProduction {
+  id            String   @id @default(uuid())
+  date          DateTime @unique
+  totalProduced Int
+  damaged       Int
+  sold          Int
+  notes         String?
+}
+
+model EggSale {
+  id            String    @id @default(uuid())
+  date          DateTime
+  customerName  String
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  quantity      Int
+  unitPrice     Float
+  totalAmount   Float
+  paymentMethod String
+  paymentStatus String    // PAID, PENDING
+  notes         String?
+}
+
+model Expense {
+  id              String         @id @default(uuid())
+  date            DateTime
+  category        String         // FEED, MEDICINE, SALARY, EQUIPMENT, MAINTENANCE, TRANSPORT, UTILITY, PERSONAL, OTHER
+  amount          Float
+  fundingSource   String         // LOAN, PERSONAL, MIXED
+  loanId          String?
+  notes           String?
+  salaryPaymentId String?
+  salaryPayment   SalaryPayment? @relation(fields: [salaryPaymentId], references: [id], onDelete: SetNull)
+}
+
+model Income {
+  id       String   @id @default(uuid())
+  date     DateTime
+  category String   // GOAT_SALE, CHICKEN_SALE, KID_SALE, EGG_SALE, PERSONAL, OTHER
+  amount   Float
+  notes    String?
+  refId    String?  // Reference to GoatSale.id, ChickenSale.id, etc.
+}
+
+model Labour {
+  id            String          @id @default(uuid())
+  fullName      String
+  mobileNumber  String
+  address       String
+  idProof       String          // Aadhaar, PAN, etc.
+  joiningDate   DateTime
+  salaryType    String          // MONTHLY, DAILY
+  monthlySalary Float
+  aadhaarDoc    String?         // URL/Path
+  panDoc        String?         // URL/Path
+  otherDoc      String?         // URL/Path
+  status        String          @default("ACTIVE") // ACTIVE, INACTIVE
+  salaries      SalaryPayment[]
+}
+
+model SalaryPayment {
+  id            String    @id @default(uuid())
+  labourId      String
+  labour        Labour    @relation(fields: [labourId], references: [id], onDelete: Cascade)
+  date          DateTime
+  amountPaid    Float
+  amountPending Float
+  advanceTaken  Float
+  notes         String?
+  expenses      Expense[]
+}
+
+model Customer {
+  id           String        @id @default(uuid())
+  name         String
+  mobile       String
+  address      String
+  createdAt    DateTime      @default(now())
+  goatSales    GoatSale[]
+  chickenSales ChickenSale[]
+  eggSales     EggSale[]
+  kidSales     KidSale[]
+}
+
+model ClosingLog {
+  id               String   @id @default(uuid())
+  type             String   // MONTHLY, YEARLY
+  closeDate        DateTime
+  periodLabel      String
+  totalIncome      Float
+  totalExpense     Float
+  netProfit        Float
+  loanBalance      Float
+  inventorySummary String   // JSON summary
+  archivedAt       DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String   // LOW_INVENTORY, SALARY_DUE, LOAN_DUE, OUTSTANDING_PAYMENT
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
