@@ -97,7 +97,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div className="flex h-16 items-center justify-between border-b border-border px-6">
           <Link href="/" className="flex items-center gap-2" onClick={onClose}>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-lg">
-              A
+              F
             </div>
             <div>
               <span className="font-semibold text-lg tracking-tight">Farm</span>
